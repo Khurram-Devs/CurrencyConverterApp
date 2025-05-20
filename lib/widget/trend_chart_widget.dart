@@ -25,7 +25,18 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
     _fetchHistoricalRates();
   }
 
+  @override
+  void didUpdateWidget(CurrencyRateChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Check if the from/to currency changed
+    if (widget.from != oldWidget.from || widget.to != oldWidget.to) {
+      _fetchHistoricalRates();
+    }
+  }
+
   Future<void> _fetchHistoricalRates() async {
+    setState(() => _isLoading = true);  // Show loading on every fetch
+
     final now = DateTime.now();
     final startDate = now.subtract(const Duration(days: 30));
     final formatter = DateFormat('yyyy-MM-dd');
@@ -60,10 +71,20 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
           _dates = labels;
           _isLoading = false;
         });
+      } else {
+        setState(() {
+          _spots = [];
+          _dates = [];
+          _isLoading = false;
+        });
       }
     } catch (e) {
       debugPrint("Error loading rates: $e");
-      setState(() => _isLoading = false);
+      setState(() {
+        _spots = [];
+        _dates = [];
+        _isLoading = false;
+      });
     }
   }
 

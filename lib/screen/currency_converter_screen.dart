@@ -124,13 +124,15 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     }
   }
 
-  void _swapCurrencies() {
-    setState(() {
-      final temp = _fromCurrency;
-      _fromCurrency = _toCurrency;
-      _toCurrency = temp;
-    });
-  }
+ void _swapCurrencies() {
+  setState(() {
+    final temp = _fromCurrency;
+    _fromCurrency = _toCurrency;
+    _toCurrency = temp;
+  });
+  _convertCurrency();
+}
+
 
   @override
   Widget build(BuildContext context) {
