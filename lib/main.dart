@@ -1,8 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screen/home_screen.dart';
 import 'screen/currency_converter_screen.dart';
+import 'screen/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,11 +29,11 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  // Screens to switch between
   final List<Widget> screens = [
-    HomeScreen(),      // Your home screen
-    CurrencyConverterScreen(),     // Your track screen
-    // SettingsScreen(),  // Settings screen (you can create this)
+    HomeScreen(),
+    CurrencyConverterScreen(),
+    CurrencyConverterScreen(), // Placeholder for My Tracks
+    SettingsScreen(),
   ];
 
   @override
@@ -52,6 +54,15 @@ class _MyAppState extends State<MyApp> {
               icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
               onPressed: toggleTheme,
             ),
+            if (FirebaseAuth.instance.currentUser != null)
+              IconButton(
+                icon: const Icon(Icons.logout),
+                tooltip: 'Logout',
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                  setState(() {}); // Refresh UI after logout
+                },
+              ),
           ],
         ),
         body: screens[selectedIndex],
@@ -62,10 +73,7 @@ class _MyAppState extends State<MyApp> {
           showSelectedLabels: false,
           showUnselectedLabels: false,
           items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(
               icon: Icon(Icons.currency_exchange_rounded),
               label: 'Convert',

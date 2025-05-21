@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../widget/trend_chart_widget.dart';
-import '../widget/conversion_history_widget.dart';
+import '../widgets/trend_chart_widget.dart';
+import '../widgets/conversion_history_widget.dart';
 
 class CurrencyConverterScreen extends StatefulWidget {
   const CurrencyConverterScreen({super.key});
@@ -124,15 +124,14 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     }
   }
 
- void _swapCurrencies() {
-  setState(() {
-    final temp = _fromCurrency;
-    _fromCurrency = _toCurrency;
-    _toCurrency = temp;
-  });
-  _convertCurrency();
-}
-
+  void _swapCurrencies() {
+    setState(() {
+      final temp = _fromCurrency;
+      _fromCurrency = _toCurrency;
+      _toCurrency = temp;
+    });
+    _convertCurrency();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,61 +160,71 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                       ),
                       const SizedBox(height: 20),
                       LayoutBuilder(
-  builder: (context, constraints) {
-    final isWide = constraints.maxWidth > 500;
-    if (isWide) {
-      return Row(
-        children: [
-          Expanded(
-            child: _buildCurrencyDropdown(
-              label: "From",
-              selected: _fromCurrency,
-              onChanged: (val) =>
-                  setState(() => _fromCurrency = val),
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            icon: const Icon(Icons.compare_arrows, size: 28),
-            onPressed: _swapCurrencies,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _buildCurrencyDropdown(
-              label: "To",
-              selected: _toCurrency,
-              onChanged: (val) =>
-                  setState(() => _toCurrency = val),
-            ),
-          ),
-        ],
-      );
-    } else {
-      return Column(
-        children: [
-          _buildCurrencyDropdown(
-            label: "From",
-            selected: _fromCurrency,
-            onChanged: (val) =>
-                setState(() => _fromCurrency = val),
-          ),
-          const SizedBox(height: 10),
-          IconButton(
-            icon: const Icon(Icons.compare_arrows, size: 28),
-            onPressed: _swapCurrencies,
-          ),
-          const SizedBox(height: 10),
-          _buildCurrencyDropdown(
-            label: "To",
-            selected: _toCurrency,
-            onChanged: (val) =>
-                setState(() => _toCurrency = val),
-          ),
-        ],
-      );
-    }
-  },
-),
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth > 500;
+                          if (isWide) {
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: _buildCurrencyDropdown(
+                                    label: "From",
+                                    selected: _fromCurrency,
+                                    onChanged:
+                                        (val) =>
+                                            setState(() => _fromCurrency = val),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.compare_arrows,
+                                    size: 28,
+                                  ),
+                                  onPressed: _swapCurrencies,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildCurrencyDropdown(
+                                    label: "To",
+                                    selected: _toCurrency,
+                                    onChanged:
+                                        (val) =>
+                                            setState(() => _toCurrency = val),
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Column(
+                              children: [
+                                _buildCurrencyDropdown(
+                                  label: "From",
+                                  selected: _fromCurrency,
+                                  onChanged:
+                                      (val) =>
+                                          setState(() => _fromCurrency = val),
+                                ),
+                                const SizedBox(height: 10),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.compare_arrows,
+                                    size: 28,
+                                  ),
+                                  onPressed: _swapCurrencies,
+                                ),
+                                const SizedBox(height: 10),
+                                _buildCurrencyDropdown(
+                                  label: "To",
+                                  selected: _toCurrency,
+                                  onChanged:
+                                      (val) =>
+                                          setState(() => _toCurrency = val),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
 
                       const SizedBox(height: 30),
                       SizedBox(
