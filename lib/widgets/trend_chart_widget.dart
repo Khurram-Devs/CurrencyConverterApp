@@ -19,11 +19,18 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
   List<FlSpot> _spots = [];
   List<String> _dates = [];
   bool _isLoading = true;
+  int _days = 60;
 
   @override
   void initState() {
     super.initState();
-    _fetchHistoricalRates();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final width = MediaQuery.of(context).size.width;
+      setState(() {
+        _days = width < 426 ? 30 : 60;
+      });
+      _fetchHistoricalRates();
+    });
   }
 
   @override
@@ -35,10 +42,10 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
   }
 
   Future<void> _fetchHistoricalRates() async {
-    // setState(() => _isLoading = true);  // Show loading on every fetch
+    setState(() => _isLoading = true);
 
     final now = DateTime.now();
-    final startDate = now.subtract(const Duration(days: 60));
+    final startDate = now.subtract(Duration(days: _days));
     final formatter = DateFormat('yyyy-MM-dd');
 
     final url = Uri.parse(
@@ -101,12 +108,11 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
             children: [
               Center(
                 child: Text(
-                  "60-Day Exchange Rate History",
+                  "Exchange Rate History",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
-
               SizedBox(height: 12),
               SizedBox(
                 height: 250,
@@ -139,9 +145,9 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
       padding: const EdgeInsets.all(12.0),
       child: Column(
         children: [
-          const Text(
-            "60-Day Exchange Rate History",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Text(
+            "$_days-Day Exchange Rate History",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -150,14 +156,12 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
               LineChartData(
                 gridData: FlGridData(
                   show: true,
-                  getDrawingHorizontalLine:
-                      (value) => FlLine(
-                        color:
-                            isDark
-                                ? const Color(0x04FFFFFF)
-                                : const Color(0x0B000000),
-                        strokeWidth: 1,
-                      ),
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: isDark
+                        ? const Color(0x04FFFFFF)
+                        : const Color(0x0B000000),
+                    strokeWidth: 1,
+                  ),
                 ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
@@ -165,12 +169,10 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
                       showTitles: true,
                       reservedSize: 32,
                       getTitlesWidget: (value, meta) {
-                        // Only label if value matches an actual x in _spots
                         final index = _spots.indexWhere((s) => s.x == value);
                         if (index <= 0 || index >= _spots.length - 1) {
                           return const SizedBox.shrink();
                         }
-
                         return SideTitleWidget(
                           axisSide: meta.axisSide,
                           space: 6,

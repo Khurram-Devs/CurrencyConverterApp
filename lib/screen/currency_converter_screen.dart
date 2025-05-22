@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../widgets/trend_chart_widget.dart';
 import '../widgets/conversion_history_widget.dart';
 import 'settings_screen.dart';
 
 class CurrencyConverterScreen extends StatefulWidget {
-  const CurrencyConverterScreen({super.key});
+  final bool isConversionHistory;
+  const CurrencyConverterScreen({super.key, required this.isConversionHistory});
 
   @override
   State<CurrencyConverterScreen> createState() =>
@@ -228,34 +228,71 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildCurrencyDropdown(
-                                  label: "From",
-                                  selected: _fromCurrency,
-                                  onChanged:
-                                      (val) =>
-                                          setState(() => _fromCurrency = val),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.swap_horiz),
-                                onPressed: _swapCurrencies,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildCurrencyDropdown(
-                                  label: "To",
-                                  selected: _toCurrency,
-                                  onChanged:
-                                      (val) =>
-                                          setState(() => _toCurrency = val),
-                                ),
-                              ),
-                            ],
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              bool isSmallScreen = constraints.maxWidth < 600;
+
+                              if (isSmallScreen) {
+                                return Column(
+                                  children: [
+                                    _buildCurrencyDropdown(
+                                      label: "From",
+                                      selected: _fromCurrency,
+                                      onChanged:
+                                          (val) => setState(
+                                            () => _fromCurrency = val,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    IconButton(
+                                      icon: const Icon(Icons.swap_vert),
+                                      onPressed: _swapCurrencies,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildCurrencyDropdown(
+                                      label: "To",
+                                      selected: _toCurrency,
+                                      onChanged:
+                                          (val) =>
+                                              setState(() => _toCurrency = val),
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildCurrencyDropdown(
+                                        label: "From",
+                                        selected: _fromCurrency,
+                                        onChanged:
+                                            (val) => setState(
+                                              () => _fromCurrency = val,
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: const Icon(Icons.swap_horiz),
+                                      onPressed: _swapCurrencies,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _buildCurrencyDropdown(
+                                        label: "To",
+                                        selected: _toCurrency,
+                                        onChanged:
+                                            (val) => setState(
+                                              () => _toCurrency = val,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
                           ),
+
                           const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,
@@ -320,6 +357,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                       child: ConversionHistoryWidget(
                         history: _conversionHistory,
                         isLoading: _isHistoryLoading,
+                        isConversionHistory: widget.isConversionHistory,
                       ),
                     ),
                   ],

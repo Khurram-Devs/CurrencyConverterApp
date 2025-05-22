@@ -1,20 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:flutter/gestures.dart';
 
 class ConversionHistoryWidget extends StatelessWidget {
   final List<Map<String, dynamic>> history;
   final bool isLoading;
+  final bool isConversionHistory;
 
   const ConversionHistoryWidget({
     super.key,
     required this.history,
     required this.isLoading,
-    
+    required this.isConversionHistory,
   });
 
   @override
   Widget build(BuildContext context) {
+if (!isConversionHistory) {
+  // 🔒 Feature is disabled — show message with link to settings
+  return Padding(
+    padding: const EdgeInsets.all(24.0),
+    child: RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: const TextStyle(fontSize: 16, color: Colors.grey),
+        children: [
+          const TextSpan(text: "Conversion history is disabled.\nEnable it from the "),
+          TextSpan(
+            text: "Settings page",
+            style: const TextStyle(
+              color: Colors.blue,
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Navigator.of(context, rootNavigator: true).pushNamed('/settings');
+              },
+          ),
+          const TextSpan(text: "."),
+        ],
+      ),
+    ),
+  );
+}
+
+
     final showEmptyMessage = !isLoading && history.isEmpty;
 
     return Padding(

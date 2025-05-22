@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screen/home_screen.dart';
 import 'screen/currency_converter_screen.dart';
@@ -23,44 +24,140 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool isDarkMode = true;
+  bool isDarkMode = false;
+  bool isConversionHistory = true;
+  bool isLoading = true;
   late int selectedIndex;
+
+  final user = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
     selectedIndex = widget.initialTabIndex;
+    _loadTheme();
+    _loadConversionHistoryTurn();
+    _loadSettings();
+  }
+
+  void _loadSettings() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('settings')
+              .doc(uid)
+              .get();
+      final value = doc.data()?['conversion_history'];
+      setState(() {
+        isConversionHistory = value != 'off';
+      });
+    }
+  }
+
+  Future<void> _loadTheme() async {
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('settings')
+              .doc(user!.uid)
+              .get();
+
+      if (doc.exists && doc.data()!.containsKey('theme')) {
+        setState(() {
+          isDarkMode = doc.data()!['theme'] == 'dark';
+          isLoading = false;
+        });
+      } else {
+        // Default if no saved theme
+        final brightness =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness;
+        isDarkMode = brightness == Brightness.dark;
+        await _saveThemeToFirestore();
+        setState(() => isLoading = false);
+      }
+    } else {
+      // Guest user – use light theme
+      setState(() {
+        isDarkMode = false;
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadConversionHistoryTurn() async {
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('settings')
+              .doc(user!.uid)
+              .get();
+
+      if (doc.exists && doc.data()!.containsKey('conversion_history')) {
+        setState(() {
+          isConversionHistory = doc.data()!['conversion_history'] == 'on';
+          isLoading = false;
+        });
+      } else {
+        // Default if no saved setting
+        isConversionHistory = true;
+        await _saveThemeToFirestore();
+        setState(() => isLoading = false);
+      }
+    } else {
+      // Guest user – history turn on
+      setState(() {
+        isConversionHistory = true;
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveThemeToFirestore() async {
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('settings')
+          .doc(user!.uid)
+          .set({
+            'theme': isDarkMode ? 'dark' : 'light',
+          }, SetOptions(merge: true));
+    }
   }
 
   void toggleTheme() {
-    setState(() {
-      isDarkMode = !isDarkMode;
-    });
+    setState(() => isDarkMode = !isDarkMode);
+    _saveThemeToFirestore();
   }
-
-  final List<Widget> screens = [
-    HomeScreen(),
-    CurrencyConverterScreen(),
-    CurrencyConverterScreen(),
-    SettingsScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      HomeScreen(),
+      CurrencyConverterScreen(isConversionHistory: isConversionHistory),
+      CurrencyConverterScreen(isConversionHistory: isConversionHistory),
+      SettingsScreen(
+        onConversionHistoryChanged: (value) {
+          setState(() => isConversionHistory = value);
+        },
+      ),
+    ];
+
+    if (isLoading) {
+      return const MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
     return MaterialApp(
       title: 'Currency Tracker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        textTheme: GoogleFonts.robotoTextTheme(
-          ThemeData.light().textTheme,
-        ),
+        textTheme: GoogleFonts.robotoTextTheme(ThemeData.light().textTheme),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
-        textTheme: GoogleFonts.robotoTextTheme(
-          ThemeData.dark().textTheme,
-        ),
+        textTheme: GoogleFonts.robotoTextTheme(ThemeData.dark().textTheme),
       ),
       themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       routes: {
@@ -72,38 +169,37 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         appBar: AppBar(
           title: LayoutBuilder(
-  builder: (context, constraints) {
-    double width = constraints.maxWidth;
+            builder: (context, constraints) {
+              double width = constraints.maxWidth;
+              double fontSize;
+              if (width >= 1024) {
+                fontSize = 40;
+              } else if (width >= 600) {
+                fontSize = 26;
+              } else {
+                fontSize = 20;
+              }
 
-    double fontSize;
-    if (width >= 1024) {
-      fontSize = 40;
-    } else if (width >= 600) {
-      fontSize = 26;
-    } else {
-      fontSize = 20;
-    }
-
-    return Text(
-      'CURRENCY TRACKER',
-      style: TextStyle(
-        fontSize: fontSize,
-        letterSpacing: 3,
-        wordSpacing: 4,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  },
-),
-
+              return Text(
+                'CURRENCY TRACKER',
+                style: TextStyle(
+                  fontSize: fontSize,
+                  letterSpacing: 3,
+                  wordSpacing: 4,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+          ),
           centerTitle: true,
           actions: [
             IconButton(
               icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
               onPressed: toggleTheme,
-              tooltip: isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode",
+              tooltip:
+                  isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode",
             ),
-            if (FirebaseAuth.instance.currentUser != null)
+            if (user != null)
               IconButton(
                 icon: const Icon(Icons.logout),
                 tooltip: 'Logout',
@@ -137,9 +233,7 @@ class _MyAppState extends State<MyApp> {
             ),
           ],
           onTap: (index) {
-            setState(() {
-              selectedIndex = index;
-            });
+            setState(() => selectedIndex = index);
           },
         ),
       ),
