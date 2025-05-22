@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'screen/home_screen.dart';
 import 'screen/currency_converter_screen.dart';
 import 'screen/settings_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +50,19 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Currency Tracker',
       debugShowCheckedModeBanner: false,
-      theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      theme: ThemeData(
+        brightness: Brightness.light,
+        textTheme: GoogleFonts.robotoTextTheme(
+          ThemeData.light().textTheme,
+        ),
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        textTheme: GoogleFonts.robotoTextTheme(
+          ThemeData.dark().textTheme,
+        ),
+      ),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       routes: {
         '/home': (_) => const MyApp(initialTabIndex: 0),
         '/convert': (_) => const MyApp(initialTabIndex: 1),
@@ -58,10 +71,31 @@ class _MyAppState extends State<MyApp> {
       },
       home: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'Currency Tracker',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
+          title: LayoutBuilder(
+  builder: (context, constraints) {
+    double width = constraints.maxWidth;
+
+    double fontSize;
+    if (width >= 1024) {
+      fontSize = 40;
+    } else if (width >= 600) {
+      fontSize = 26;
+    } else {
+      fontSize = 20;
+    }
+
+    return Text(
+      'CURRENCY TRACKER',
+      style: TextStyle(
+        fontSize: fontSize,
+        letterSpacing: 3,
+        wordSpacing: 4,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  },
+),
+
           centerTitle: true,
           actions: [
             IconButton(
@@ -75,10 +109,7 @@ class _MyAppState extends State<MyApp> {
                 tooltip: 'Logout',
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed('/home');
+                  Navigator.of(context, rootNavigator: true).pushNamed('/home');
                 },
               ),
           ],

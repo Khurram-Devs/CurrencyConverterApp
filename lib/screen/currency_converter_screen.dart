@@ -30,6 +30,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
   String? _conversionResult;
   bool _isLoading = false;
   List<Map<String, dynamic>> _conversionHistory = [];
+  bool _isHistoryLoading = true;
 
   @override
   void initState() {
@@ -109,8 +110,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final rate = (data["rates"][_toCurrency] as num).toDouble();
-        final result =
-            rate.toStringAsFixed(2);
+        final result = rate.toStringAsFixed(2);
 
         final conversionData = {
           'amount': amount,
@@ -145,8 +145,8 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    setState(() => _isHistoryLoading = true);
     try {
-      setState(() => _isLoading = true);
       final snapshot =
           await FirebaseFirestore.instance
               .collection('conversions_history')
@@ -161,7 +161,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     } catch (e) {
       debugPrint("Error fetching history: $e");
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => _isHistoryLoading = false); // stop loading
     }
   }
 
@@ -181,16 +181,12 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pop(); // Close dialog first
+                  Navigator.of(context, rootNavigator: true).pop();
                   Navigator.of(
                     context,
                     rootNavigator: true,
                   ).pushNamed('/settings');
                 },
-
                 child: const Text("Go to Log In"),
               ),
             ],
@@ -298,9 +294,10 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                               (!_hasUserConverted &&
                                   _defaultConversionResult != null))
                             Text(
-                              _conversionResult ??
-                                  _defaultConversionResult ??
-                                  '',
+                              (_hasUserConverted && _conversionResult != null)
+                                  ? "${_amountController.text} $_fromCurrency = $_conversionResult $_toCurrency"
+                                  : (_defaultConversionResult ?? ''),
+
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w600,
@@ -322,6 +319,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                     _buildCard(
                       child: ConversionHistoryWidget(
                         history: _conversionHistory,
+                        isLoading: _isHistoryLoading,
                       ),
                     ),
                   ],

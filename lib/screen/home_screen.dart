@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -93,73 +94,103 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
  @override
-  Widget build(BuildContext context) {
-    return isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            itemCount: currencies.length,
-            itemBuilder: (context, index) {
-              final currency = currencies[index];
-              final change = currency['change'] as double;
-              final isPositive = change >= 0;
+Widget build(BuildContext context) {
+  return Skeletonizer(
+    enabled: isLoading,
+    child: ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      itemCount: isLoading ? 20 : currencies.length,
+      itemBuilder: (context, index) {
+        final currency = isLoading
+            ? {'code': 'USD', 'change': 0.0}
+            : currencies[index];
 
-              return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                child: ListTile(
-                  leading: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        currency['code'] ?? '',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        currencyNames[currency['code']] ?? '',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  title: const SizedBox.shrink(),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${change.abs().toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          color: isPositive ? Colors.green : Colors.red,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Icon(
-                        isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                        color: isPositive ? Colors.green : Colors.red,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 10),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () {
-                          // Add to track functionality
-                        },
-                      ),
-                    ],
+        final change = currency['change'] as double;
+        final isPositive = change >= 0;
+
+        return Card(
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+  ),
+  elevation: 3,
+  margin: const EdgeInsets.symmetric(vertical: 6),
+  child: Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Currency Code and Name
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  currency['code'] ?? '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 3,
+                    fontSize: 22,
                   ),
                 ),
-              );
-            },
-          );
-  }
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  currencyNames[currency['code']] ?? '',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    letterSpacing: 2,
+                    wordSpacing: 2,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${change.abs().toStringAsFixed(2)}%',
+                style: TextStyle(
+                  fontSize: 18,
+                    letterSpacing: 2,
+                  color: isPositive ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Icon(
+              isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+              color: isPositive ? Colors.green : Colors.red,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: () {
+                // Add to track functionality
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+);
+
+      },
+    ),
+  );
+}
+
 }

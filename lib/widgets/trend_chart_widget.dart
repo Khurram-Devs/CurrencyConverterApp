@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:skeletonizer/skeletonizer.dart';
 
 class CurrencyRateChart extends StatefulWidget {
   final String from;
@@ -94,7 +95,31 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.all(16.0),
-        child: Center(child: CircularProgressIndicator()),
+        child: Skeletonizer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  "60-Day Exchange Rate History",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+              SizedBox(height: 12),
+              SizedBox(
+                height: 250,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.grey,
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -125,12 +150,14 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
               LineChartData(
                 gridData: FlGridData(
                   show: true,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: isDark
-                        ? const Color(0x04FFFFFF)
-                        : const Color(0x0B000000),
-                    strokeWidth: 1,
-                  ),
+                  getDrawingHorizontalLine:
+                      (value) => FlLine(
+                        color:
+                            isDark
+                                ? const Color(0x04FFFFFF)
+                                : const Color(0x0B000000),
+                        strokeWidth: 1,
+                      ),
                 ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
@@ -151,9 +178,7 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
                             _dates[index],
                             style: TextStyle(
                               fontSize: 10,
-                              color: isDark
-                                  ? Colors.white70
-                                  : Colors.black54,
+                              color: isDark ? Colors.white70 : Colors.black54,
                             ),
                           ),
                         );
@@ -188,8 +213,7 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
                 lineTouchData: LineTouchData(
                   handleBuiltInTouches: true,
                   touchTooltipData: LineTouchTooltipData(
-                    tooltipBgColor:
-                        isDark ? Colors.black87 : Colors.white,
+                    tooltipBgColor: isDark ? Colors.black87 : Colors.white,
                     tooltipRoundedRadius: 8,
                     tooltipPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
