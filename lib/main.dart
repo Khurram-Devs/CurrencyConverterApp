@@ -13,7 +13,9 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final int initialTabIndex;
+
+  const MyApp({super.key, this.initialTabIndex = 0});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -21,7 +23,13 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool isDarkMode = true;
-  int selectedIndex = 0;
+  late int selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedIndex = widget.initialTabIndex;
+  }
 
   void toggleTheme() {
     setState(() {
@@ -32,7 +40,7 @@ class _MyAppState extends State<MyApp> {
   final List<Widget> screens = [
     HomeScreen(),
     CurrencyConverterScreen(),
-    CurrencyConverterScreen(), // Placeholder for My Tracks
+    CurrencyConverterScreen(),
     SettingsScreen(),
   ];
 
@@ -42,6 +50,12 @@ class _MyAppState extends State<MyApp> {
       title: 'Currency Tracker',
       debugShowCheckedModeBanner: false,
       theme: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      routes: {
+        '/home': (_) => const MyApp(initialTabIndex: 0),
+        '/convert': (_) => const MyApp(initialTabIndex: 1),
+        '/history': (_) => const MyApp(initialTabIndex: 2),
+        '/settings': (_) => const MyApp(initialTabIndex: 3),
+      },
       home: Scaffold(
         appBar: AppBar(
           title: const Text(
@@ -53,6 +67,7 @@ class _MyAppState extends State<MyApp> {
             IconButton(
               icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
               onPressed: toggleTheme,
+              tooltip: isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode",
             ),
             if (FirebaseAuth.instance.currentUser != null)
               IconButton(
@@ -60,7 +75,10 @@ class _MyAppState extends State<MyApp> {
                 tooltip: 'Logout',
                 onPressed: () async {
                   await FirebaseAuth.instance.signOut();
-                  setState(() {}); // Refresh UI after logout
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pushNamed('/home');
                 },
               ),
           ],

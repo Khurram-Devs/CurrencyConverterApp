@@ -28,17 +28,16 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
   @override
   void didUpdateWidget(CurrencyRateChart oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Check if the from/to currency changed
     if (widget.from != oldWidget.from || widget.to != oldWidget.to) {
       _fetchHistoricalRates();
     }
   }
 
   Future<void> _fetchHistoricalRates() async {
-    setState(() => _isLoading = true);  // Show loading on every fetch
+    // setState(() => _isLoading = true);  // Show loading on every fetch
 
     final now = DateTime.now();
-    final startDate = now.subtract(const Duration(days: 30));
+    final startDate = now.subtract(const Duration(days: 60));
     final formatter = DateFormat('yyyy-MM-dd');
 
     final url = Uri.parse(
@@ -116,7 +115,7 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
       child: Column(
         children: [
           const Text(
-            "30-Day Exchange Rate History",
+            "60-Day Exchange Rate History",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:currency_converter_app/main.dart';
 
 class LoginSignupWidget extends StatefulWidget {
   const LoginSignupWidget({super.key});
@@ -21,80 +22,54 @@ class _LoginSignupWidgetState extends State<LoginSignupWidget> {
 
       try {
         if (isLogin) {
-          await auth.signInWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Login successful!')));
+          await auth.signInWithEmailAndPassword(email: email, password: password);
+          _showMessage('Login successful!');
         } else {
-          await auth.createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created and logged in!')),
-          );
+          await auth.createUserWithEmailAndPassword(email: email, password: password);
+          _showMessage('Account created and logged in!');
         }
+
+        Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).pushNamed('/home');
+
       } on FirebaseAuthException catch (e) {
-        print(e.code);
-        print(e.message);
-        print(e.credential);
         if (isLogin && e.code == 'user-not-found') {
-          setState(() {
-            isLogin = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account does not exist. Please create one.'),
-            ),
-          );
-        } else if (isLogin && e.code == 'wrong-password') {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Incorrect password.')));
+          setState(() => isLogin = false);
+          _showMessage('Account does not exist. Please create one.');
+        } else if (e.code == 'wrong-password') {
+          _showMessage('Incorrect password.');
         } else if (e.code == 'invalid-email') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid email format.')),
-          );
+          _showMessage('Invalid email format.');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.message ?? 'Authentication error occurred.'),
-            ),
-          );
+          _showMessage(e.message ?? 'Authentication error occurred.');
         }
       }
 
-      setState(() {}); // Refresh UI in case user gets logged in
+      setState(() {});
     }
   }
 
-  void toggleForm() {
-    setState(() {
-      isLogin = !isLogin;
-    });
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
+
+  void toggleForm() => setState(() => isLogin = !isLogin);
 
   void forgotPassword() {
     if (email.isNotEmpty) {
       auth.sendPasswordResetEmail(email: email);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset email sent.')),
-      );
+      _showMessage('Password reset email sent.');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email first.')),
-      );
+      _showMessage('Please enter your email first.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final availableHeight =
-        mediaQuery.size.height - kToolbarHeight - mediaQuery.padding.top;
+    final availableHeight = mediaQuery.size.height - kToolbarHeight - mediaQuery.padding.top;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -102,120 +77,105 @@ class _LoginSignupWidgetState extends State<LoginSignupWidget> {
       child: Container(
         height: availableHeight,
         alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          elevation: 12,
-          color: theme.cardColor,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(127),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    isLogin ? 'Welcome Back' : 'Create Account',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    isLogin ? 'Welcome Back 👋' : 'Create Account 📝',
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
                   TextFormField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     onSaved: (value) => email = value!.trim(),
-                    validator:
-                        (value) =>
-                            value == null || !value.contains('@')
-                                ? 'Enter a valid email'
-                                : null,
+                    validator: (value) => value == null || !value.contains('@') ? 'Enter a valid email' : null,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   TextFormField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     obscureText: true,
                     onSaved: (value) => password = value!,
-                    validator:
-                        (value) =>
-                            value == null || value.length < 6
-                                ? 'Minimum 6 characters required'
-                                : null,
+                    validator: (value) => value == null || value.length < 6 ? 'Minimum 6 characters required' : null,
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: submit,
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        backgroundColor: theme.primaryColor,
-                      ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                       child: Text(
                         isLogin ? 'Login' : 'Sign Up',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Toggle between Login/Signup
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: forgotPassword,
+                    child: Text(
+                      "Forgot Password?",
+                      style: TextStyle(
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        isLogin
-                            ? "Don't have an account? "
-                            : "Already have an account? ",
+                        isLogin ? "Don't have an account?" : "Already have an account?",
                         style: TextStyle(
                           color: isDark ? Colors.white70 : Colors.black87,
                         ),
                       ),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: toggleForm,
-                          child: Text(
-                            isLogin ? "Sign up" : "Log in",
-                            style: const TextStyle(
-                              color: Colors.blueAccent,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: toggleForm,
+                        child: Text(
+                          isLogin ? "Sign up" : "Log in",
+                          style: const TextStyle(
+                            color: Colors.blueAccent,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Forgot Password
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: forgotPassword,
-                      child: const Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
