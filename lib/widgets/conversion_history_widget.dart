@@ -17,34 +17,38 @@ class ConversionHistoryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-if (!isConversionHistory) {
-  // 🔒 Feature is disabled — show message with link to settings
-  return Padding(
-    padding: const EdgeInsets.all(24.0),
-    child: RichText(
-      textAlign: TextAlign.center,
-      text: TextSpan(
-        style: const TextStyle(fontSize: 16, color: Colors.grey),
-        children: [
-          const TextSpan(text: "Conversion history is disabled.\nEnable it from the "),
-          TextSpan(
-            text: "Settings page",
-            style: const TextStyle(
-              color: Colors.blue,
-              decoration: TextDecoration.underline,
-            ),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () {
-                Navigator.of(context, rootNavigator: true).pushNamed('/settings');
-              },
+    if (!isConversionHistory) {
+      return Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            children: [
+              const TextSpan(
+                text: "Conversion history is disabled.\nEnable it from the ",
+              ),
+              TextSpan(
+                text: "Settings page",
+                style: const TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+                recognizer:
+                    TapGestureRecognizer()
+                      ..onTap = () {
+                        Navigator.of(
+                          context,
+                          rootNavigator: true,
+                        ).pushNamed('/settings');
+                      },
+              ),
+              const TextSpan(text: "."),
+            ],
           ),
-          const TextSpan(text: "."),
-        ],
-      ),
-    ),
-  );
-}
-
+        ),
+      );
+    }
 
     final showEmptyMessage = !isLoading && history.isEmpty;
 
@@ -59,10 +63,7 @@ if (!isConversionHistory) {
                 padding: EdgeInsets.all(24.0),
                 child: Text(
                   "No conversion history yet.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               )
             else
@@ -72,21 +73,24 @@ if (!isConversionHistory) {
                 itemCount: isLoading ? 5 : history.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
-                  final item = isLoading
-                      ? {
-                          'amount': '123.45',
-                          'from': 'USD',
-                          'to': 'EUR',
-                          'result': '113.78',
-                          'timestamp': null,
-                        }
-                      : history[index];
+                  final item =
+                      isLoading
+                          ? {
+                            'amount': '123.45',
+                            'from': 'USD',
+                            'to': 'EUR',
+                            'result': '113.78',
+                            'timestamp': null,
+                          }
+                          : history[index];
 
                   final timestamp = item['timestamp'];
-                  final formattedTime = timestamp != null
-                      ? DateFormat('EEE, MMM d, yyyy • h:mm a')
-                          .format(timestamp.toDate())
-                      : 'Loading...';
+                  final formattedTime =
+                      timestamp != null
+                          ? DateFormat(
+                            'EEE, MMM d, yyyy • h:mm a',
+                          ).format(timestamp.toDate())
+                          : 'Loading...';
 
                   return Card(
                     elevation: 3,
@@ -96,7 +100,10 @@ if (!isConversionHistory) {
                     child: ListTile(
                       leading: const CircleAvatar(
                         backgroundColor: Colors.indigo,
-                        child: Icon(Icons.currency_exchange, color: Colors.white),
+                        child: Icon(
+                          Icons.currency_exchange,
+                          color: Colors.white,
+                        ),
                       ),
                       title: Text(
                         "${item['amount']} ${item['from']} = ${item['result']} ${item['to']}",

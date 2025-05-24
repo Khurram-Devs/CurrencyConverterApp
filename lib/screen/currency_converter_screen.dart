@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/trend_chart_widget.dart';
 import '../widgets/conversion_history_widget.dart';
-import 'settings_screen.dart';
+import '../models/currency.dart';
+import '../data/currencies.dart';
 
 class CurrencyConverterScreen extends StatefulWidget {
   final bool isConversionHistory;
@@ -20,14 +21,14 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
   final TextEditingController _amountController = TextEditingController(
     text: "1",
   );
+
   String? _defaultConversionResult;
   bool _hasUserConverted = false;
-  Map<String, String> _currencyMap = {};
-  List<String> _currencyCodes = [];
+  late List<Currency> _allCurrencies;
   String? _fromCurrency;
   String? _toCurrency;
-  double? _convertedRate;
   String? _conversionResult;
+  double? _convertedRate;
   bool _isLoading = false;
   List<Map<String, dynamic>> _conversionHistory = [];
   bool _isHistoryLoading = true;
@@ -35,7 +36,16 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchSupportedCurrencies().then((_) => _fetchDefaultConversion());
+
+    // Merge and ensure unique currency codes
+    final all = [...fiatCurrencies, ...cryptoCurrencies, ...preciousMetals];
+    final seen = <String>{};
+    _allCurrencies =
+        all.where((currency) => seen.add(currency.code.toLowerCase())).toList();
+
+    _fromCurrency = 'usd';
+    _toCurrency = 'eur';
+    _fetchDefaultConversion();
     _fetchUserConversionHistory();
   }
 
@@ -43,44 +53,18 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-          "https://api.frankfurter.app/latest?amount=1&from=USD&to=EUR",
+          "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
         ),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final rate = (data["rates"]["EUR"] as num).toDouble();
+        final rate = (data["usd"]["eur"] as num).toDouble();
         setState(() {
           _defaultConversionResult = "1 USD = ${rate.toStringAsFixed(2)} EUR";
         });
       }
     } catch (e) {
       debugPrint("Default conversion fetch error: $e");
-    }
-  }
-
-  Future<void> _fetchSupportedCurrencies() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await http.get(
-        Uri.parse("https://api.frankfurter.app/currencies"),
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonData = json.decode(response.body);
-        final Map<String, String> parsedMap = jsonData.map(
-          (key, value) => MapEntry(key, value.toString()),
-        );
-        setState(() {
-          _currencyMap = parsedMap;
-          _currencyCodes = parsedMap.keys.toList()..sort();
-          _fromCurrency = 'USD';
-          _toCurrency =
-              _currencyCodes.contains('EUR') ? 'EUR' : _currencyCodes.first;
-        });
-      }
-    } catch (e) {
-      debugPrint("Error fetching currencies: $e");
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
@@ -102,20 +86,19 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     });
 
     try {
-      final uri = Uri.parse(
-        "https://api.frankfurter.app/latest?amount=$amount&from=$_fromCurrency&to=$_toCurrency",
-      );
-      final response = await http.get(uri);
+      final url =
+          "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${_fromCurrency!.toLowerCase()}.json";
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final rate = (data["rates"][_toCurrency] as num).toDouble();
-        final result = rate.toStringAsFixed(2);
+        final rate = (data[_fromCurrency!][_toCurrency!] as num).toDouble();
+        final result = (amount * rate).toStringAsFixed(2);
 
         final conversionData = {
           'amount': amount,
-          'from': _fromCurrency,
-          'to': _toCurrency,
+          'from': _fromCurrency!.toUpperCase(),
+          'to': _toCurrency!.toUpperCase(),
           'result': result,
           'timestamp': Timestamp.now(),
           'userId': user.uid,
@@ -126,7 +109,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
             .add(conversionData);
 
         setState(() {
-          _convertedRate = rate / amount;
+          _convertedRate = rate;
           _conversionResult = result;
         });
 
@@ -161,7 +144,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     } catch (e) {
       debugPrint("Error fetching history: $e");
     } finally {
-      setState(() => _isHistoryLoading = false); // stop loading
+      setState(() => _isHistoryLoading = false);
     }
   }
 
@@ -203,11 +186,58 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     _convertCurrency();
   }
 
+  Widget _buildCurrencyDropdown({
+    required String label,
+    required String? selected,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    // Group by lowercase code and pick the first occurrence to prevent duplicates
+    final uniqueCurrencies =
+        {for (var c in _allCurrencies) c.code.toLowerCase(): c}.values.toList();
+
+    final dropdownItems =
+        uniqueCurrencies
+            .map(
+              (currency) => DropdownMenuItem<String>(
+                value: currency.code.toLowerCase(),
+                child: Text(
+                  "${currency.code.toUpperCase()} | ${currency.name}",
+                ),
+              ),
+            )
+            .toList();
+    print(
+      "All dropdown values: ${_allCurrencies.map((c) => c.code.toLowerCase())}",
+    );
+    return DropdownButtonFormField<String>(
+      value:
+          selected != null &&
+                  dropdownItems.any((item) => item.value == selected)
+              ? selected
+              : null, // avoid asserting on missing value
+      items: dropdownItems,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        isDense: true,
+      ),
+    );
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(padding: const EdgeInsets.all(16), child: child),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body:
-          _isLoading && _currencyMap.isEmpty
+          _allCurrencies.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -231,38 +261,10 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                           LayoutBuilder(
                             builder: (context, constraints) {
                               bool isSmallScreen = constraints.maxWidth < 600;
-
-                              if (isSmallScreen) {
-                                return Column(
-                                  children: [
-                                    _buildCurrencyDropdown(
-                                      label: "From",
-                                      selected: _fromCurrency,
-                                      onChanged:
-                                          (val) => setState(
-                                            () => _fromCurrency = val,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    IconButton(
-                                      icon: const Icon(Icons.swap_vert),
-                                      onPressed: _swapCurrencies,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildCurrencyDropdown(
-                                      label: "To",
-                                      selected: _toCurrency,
-                                      onChanged:
-                                          (val) =>
-                                              setState(() => _toCurrency = val),
-                                    ),
-                                  ],
-                                );
-                              } else {
-                                return Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildCurrencyDropdown(
+                              return isSmallScreen
+                                  ? Column(
+                                    children: [
+                                      _buildCurrencyDropdown(
                                         label: "From",
                                         selected: _fromCurrency,
                                         onChanged:
@@ -270,15 +272,13 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                                               () => _fromCurrency = val,
                                             ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(Icons.swap_horiz),
-                                      onPressed: _swapCurrencies,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: _buildCurrencyDropdown(
+                                      const SizedBox(height: 12),
+                                      IconButton(
+                                        icon: const Icon(Icons.swap_vert),
+                                        onPressed: _swapCurrencies,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _buildCurrencyDropdown(
                                         label: "To",
                                         selected: _toCurrency,
                                         onChanged:
@@ -286,13 +286,40 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                                               () => _toCurrency = val,
                                             ),
                                       ),
-                                    ),
-                                  ],
-                                );
-                              }
+                                    ],
+                                  )
+                                  : Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildCurrencyDropdown(
+                                          label: "From",
+                                          selected: _fromCurrency,
+                                          onChanged:
+                                              (val) => setState(
+                                                () => _fromCurrency = val,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.swap_horiz),
+                                        onPressed: _swapCurrencies,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: _buildCurrencyDropdown(
+                                          label: "To",
+                                          selected: _toCurrency,
+                                          onChanged:
+                                              (val) => setState(
+                                                () => _toCurrency = val,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
                             },
                           ),
-
                           const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,
@@ -331,10 +358,9 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                               (!_hasUserConverted &&
                                   _defaultConversionResult != null))
                             Text(
-                              (_hasUserConverted && _conversionResult != null)
-                                  ? "${_amountController.text} $_fromCurrency = $_conversionResult $_toCurrency"
-                                  : (_defaultConversionResult ?? ''),
-
+                              _hasUserConverted && _conversionResult != null
+                                  ? "${_amountController.text} ${_fromCurrency!.toUpperCase()} = $_conversionResult ${_toCurrency!.toUpperCase()}"
+                                  : _defaultConversionResult ?? '',
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w600,
@@ -363,39 +389,6 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
                   ],
                 ),
               ),
-    );
-  }
-
-  Widget _buildCard({required Widget child}) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
-    );
-  }
-
-  Widget _buildCurrencyDropdown({
-    required String label,
-    required String? selected,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: selected,
-      items:
-          _currencyCodes
-              .map(
-                (code) => DropdownMenuItem(
-                  value: code,
-                  child: Text("$code | ${_currencyMap[code]}"),
-                ),
-              )
-              .toList(),
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        isDense: true,
-      ),
     );
   }
 }
