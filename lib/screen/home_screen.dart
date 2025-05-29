@@ -16,8 +16,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = true;
   List<Currency> displayedCurrencies = fiatCurrencies;
-  String selectedCategory = 'fiat';
   List<Map<String, dynamic>> currenciesData = [];
+  List<Map<String, dynamic>> filteredData = [];
+
+  String selectedCategory = 'fiat';
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -29,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (value == null) return;
     setState(() {
       selectedCategory = value;
+      searchQuery = '';
       switch (value) {
         case 'fiat':
           displayedCurrencies = fiatCurrencies;
@@ -45,19 +49,34 @@ class _HomeScreenState extends State<HomeScreen> {
     fetchCurrencyChanges();
   }
 
+  void applySearchFilter() {
+    if (searchQuery.isEmpty) {
+      filteredData = currenciesData;
+    } else {
+      filteredData = currenciesData
+          .where((currency) =>
+              (currency['code'] as String)
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase()) ||
+              (currency['name'] as String)
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase()))
+          .toList();
+    }
+    setState(() {});
+  }
+
   Future<void> fetchCurrencyChanges() async {
     final base = 'usd';
     currenciesData.clear();
 
     try {
-      // Fetch latest
       final latestUrl = Uri.parse(
         'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/$base.json',
       );
       final latestResponse = await http.get(latestUrl);
 
-      // Try to get the most recent working past date (up to 5 days back)
-      DateTime checkDate = DateTime.now().subtract(const Duration(days: 3));
+      DateTime checkDate = DateTime.now().subtract(const Duration(days: 7));
       Map<String, dynamic>? previousRates;
       String? previousDateUsed;
 
@@ -92,9 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
             continue;
           }
 
-          final codeLower = currency.code.toLowerCase();
-          final todayRate = latestRates[codeLower];
-          final yestRate = previousRates[codeLower];
+          final todayRate = latestRates[code];
+          final yestRate = previousRates[code];
 
           if (todayRate != null && yestRate != null) {
             final change = ((todayRate - yestRate) / yestRate) * 100;
@@ -106,13 +124,12 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
 
+        filteredData = currenciesData;
         setState(() {
           isLoading = false;
         });
       } else {
-        throw Exception(
-          'API error:\nLatest status: ${latestResponse.statusCode}\nPrevious found: ${previousRates != null}',
-        );
+        throw Exception('API error:\nLatest: ${latestResponse.statusCode}');
       }
     } catch (e) {
       debugPrint('Error fetching currency rate changes: $e');
@@ -126,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Category dropdown
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: DropdownButtonFormField<String>(
@@ -148,17 +166,42 @@ class _HomeScreenState extends State<HomeScreen> {
             onChanged: onCategoryChanged,
           ),
         ),
+
+        // Search bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: TextField(
+            onChanged: (value) {
+              searchQuery = value;
+              applySearchFilter();
+            },
+            decoration: InputDecoration(
+              hintText: 'Search currency by name or code...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Currency list
         Expanded(
           child: Skeletonizer(
             enabled: isLoading,
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              itemCount: isLoading ? 20 : currenciesData.length,
+              itemCount: isLoading ? 20 : filteredData.length,
               itemBuilder: (context, index) {
-                final currency =
-                    isLoading
-                        ? {'code': 'usd', 'name': 'US Dollar', 'change': 0.0}
-                        : currenciesData[index];
+                final currency = isLoading
+                    ? {'code': 'usd', 'name': 'US Dollar', 'change': 0.0}
+                    : filteredData[index];
 
                 final change = currency['change'] as double;
                 final isPositive = change >= 0;

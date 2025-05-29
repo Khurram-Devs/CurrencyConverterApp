@@ -1,12 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
-import 'screen/home_screen.dart';
-import 'screen/currency_converter_screen.dart';
-import 'screen/settings_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:currency_converter_app/screen/home_screen.dart';
+import 'package:currency_converter_app/screen/currency_converter_screen.dart'
+    as converter;
+import 'package:currency_converter_app/screen/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -133,8 +134,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     final List<Widget> screens = [
       HomeScreen(),
-      CurrencyConverterScreen(isConversionHistory: isConversionHistory),
-      CurrencyConverterScreen(isConversionHistory: isConversionHistory),
+      converter.CurrencyConverterScreen(isConversionHistory: false),
+      converter.CurrencyConverterScreen(isConversionHistory: true),
       SettingsScreen(
         onConversionHistoryChanged: (value) {
           setState(() => isConversionHistory = value);

@@ -19,18 +19,11 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
   List<FlSpot> _spots = [];
   List<String> _dates = [];
   bool _isLoading = true;
-  int _days = 60;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final width = MediaQuery.of(context).size.width;
-      setState(() {
-        _days = width < 426 ? 30 : 60;
-      });
-      _fetchHistoricalRates();
-    });
+    _fetchHistoricalRates();
   }
 
   @override
@@ -45,54 +38,44 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
     setState(() => _isLoading = true);
 
     final now = DateTime.now();
-    final startDate = now.subtract(Duration(days: _days));
-    final formatter = DateFormat('yyyy-MM-dd');
+    final int totalDays = 30;
+    final int step = (totalDays / totalDays).floor();
 
-    final url = Uri.parse(
-      'https://api.frankfurter.app/${formatter.format(startDate)}..${formatter.format(now)}?from=${widget.from}&to=${widget.to}',
-    );
+    List<FlSpot> spots = [];
+    List<String> labels = [];
 
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final rateEntries =
-            (data['rates'] as Map<String, dynamic>).entries.toList()
-              ..sort((a, b) => a.key.compareTo(b.key));
+    for (int i = totalDays; i >= 0; i -= step) {
+      final date = now.subtract(Duration(days: i));
+      final formatted = DateFormat('yyyy-MM-dd').format(date);
 
-        List<FlSpot> spots = [];
-        List<String> labels = [];
+      final url = Uri.parse(
+        'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@$formatted/v1/currencies/${widget.from.toLowerCase()}.json',
+      );
 
-        for (int i = 0; i < rateEntries.length; i++) {
-          final date = rateEntries[i].key;
-          final rateMap = rateEntries[i].value as Map<String, dynamic>;
-          if (rateMap.containsKey(widget.to)) {
-            final rate = (rateMap[widget.to] as num).toDouble();
-            spots.add(FlSpot(i.toDouble(), rate));
-            labels.add(DateFormat('MM-dd').format(DateTime.parse(date)));
+      try {
+        final response = await http.get(url);
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final rates = data[widget.from.toLowerCase()] as Map<String, dynamic>;
+          final rate = rates[widget.to.toLowerCase()];
+
+          if (rate != null) {
+            spots.add(
+              FlSpot(spots.length.toDouble(), (rate as num).toDouble()),
+            );
+            labels.add(DateFormat('MM-dd').format(date));
           }
         }
-
-        setState(() {
-          _spots = spots;
-          _dates = labels;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _spots = [];
-          _dates = [];
-          _isLoading = false;
-        });
+      } catch (e) {
+        debugPrint('Error fetching rate for $formatted: $e');
       }
-    } catch (e) {
-      debugPrint("Error loading rates: $e");
-      setState(() {
-        _spots = [];
-        _dates = [];
-        _isLoading = false;
-      });
     }
+
+    setState(() {
+      _spots = spots;
+      _dates = labels;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -104,14 +87,10 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
         padding: EdgeInsets.all(16.0),
         child: Skeletonizer(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Text(
-                  "Exchange Rate History",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+              Text(
+                "Exchange Rate History",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 12),
               SizedBox(
@@ -146,7 +125,7 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
       child: Column(
         children: [
           Text(
-            "$_days-Day Exchange Rate History",
+            "${_spots.length - 1}-Days Exchange Rate History",
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -156,36 +135,18 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
               LineChartData(
                 gridData: FlGridData(
                   show: true,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: isDark
-                        ? const Color(0x04FFFFFF)
-                        : const Color(0x0B000000),
-                    strokeWidth: 1,
-                  ),
+                  getDrawingHorizontalLine:
+                      (value) => FlLine(
+                        color:
+                            isDark
+                                ? const Color(0x04FFFFFF)
+                                : const Color(0x0B000000),
+                        strokeWidth: 1,
+                      ),
                 ),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 32,
-                      getTitlesWidget: (value, meta) {
-                        final index = _spots.indexWhere((s) => s.x == value);
-                        if (index <= 0 || index >= _spots.length - 1) {
-                          return const SizedBox.shrink();
-                        }
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          space: 6,
-                          child: Text(
-                            _dates[index],
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                    sideTitles: SideTitles(showTitles: false),
                   ),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
@@ -207,9 +168,18 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
                     spots: _spots,
                     isCurved: false,
                     color: Colors.blueAccent,
-                    barWidth: 2,
+                    barWidth: 1.5,
                     isStrokeCapRound: true,
-                    dotData: FlDotData(show: true),
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 3,
+                          color: Colors.blue,
+                          strokeWidth: 0,
+                        );
+                      },
+                    ),
                   ),
                 ],
                 lineTouchData: LineTouchData(
@@ -225,8 +195,13 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
                     fitInsideVertically: true,
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
+                        final index = spot.spotIndex;
+                        final date =
+                            (index >= 0 && index < _dates.length)
+                                ? _dates[index]
+                                : '';
                         return LineTooltipItem(
-                          "${spot.y.toStringAsFixed(4)} ${widget.to}",
+                          "$date\n${spot.y.toStringAsFixed(4)} ${widget.to}",
                           TextStyle(
                             color: isDark ? Colors.white : Colors.black87,
                             fontSize: 12,

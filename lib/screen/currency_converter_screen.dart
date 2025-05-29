@@ -3,31 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import '../widgets/trend_chart_widget.dart';
 import '../widgets/conversion_history_widget.dart';
-import 'settings_screen.dart';
+import '../models/currency.dart';
+import '../data/currencies.dart';
 
 class CurrencyConverterScreen extends StatefulWidget {
   final bool isConversionHistory;
   const CurrencyConverterScreen({super.key, required this.isConversionHistory});
 
   @override
-  State<CurrencyConverterScreen> createState() =>
-      _CurrencyConverterScreenState();
+  State<CurrencyConverterScreen> createState() => _CurrencyConverterScreenState();
 }
 
 class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
-  final TextEditingController _amountController = TextEditingController(
-    text: "1",
-  );
+  final TextEditingController _amountController = TextEditingController(text: "1");
   String? _defaultConversionResult;
   bool _hasUserConverted = false;
-  Map<String, String> _currencyMap = {};
-  List<String> _currencyCodes = [];
+  late List<Currency> _allCurrencies;
   String? _fromCurrency;
   String? _toCurrency;
-  double? _convertedRate;
   String? _conversionResult;
+  double? _convertedRate;
   bool _isLoading = false;
   List<Map<String, dynamic>> _conversionHistory = [];
   bool _isHistoryLoading = true;
@@ -35,52 +33,31 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchSupportedCurrencies().then((_) => _fetchDefaultConversion());
+
+    final all = [...fiatCurrencies, ...cryptoCurrencies, ...preciousMetals];
+    final seen = <String>{};
+    _allCurrencies = all.where((currency) => seen.add(currency.code.toLowerCase())).toList();
+
+    _fromCurrency = 'usd';
+    _toCurrency = 'eur';
+    _fetchDefaultConversion();
     _fetchUserConversionHistory();
   }
 
   Future<void> _fetchDefaultConversion() async {
     try {
-      final response = await http.get(
-        Uri.parse(
-          "https://api.frankfurter.app/latest?amount=1&from=USD&to=EUR",
-        ),
-      );
+      final response = await http.get(Uri.parse(
+        "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
+      ));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final rate = (data["rates"]["EUR"] as num).toDouble();
+        final rate = (data["usd"]["eur"] as num).toDouble();
         setState(() {
           _defaultConversionResult = "1 USD = ${rate.toStringAsFixed(2)} EUR";
         });
       }
     } catch (e) {
       debugPrint("Default conversion fetch error: $e");
-    }
-  }
-
-  Future<void> _fetchSupportedCurrencies() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await http.get(
-        Uri.parse("https://api.frankfurter.app/currencies"),
-      );
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonData = json.decode(response.body);
-        final Map<String, String> parsedMap = jsonData.map(
-          (key, value) => MapEntry(key, value.toString()),
-        );
-        setState(() {
-          _currencyMap = parsedMap;
-          _currencyCodes = parsedMap.keys.toList()..sort();
-          _fromCurrency = 'USD';
-          _toCurrency =
-              _currencyCodes.contains('EUR') ? 'EUR' : _currencyCodes.first;
-        });
-      }
-    } catch (e) {
-      debugPrint("Error fetching currencies: $e");
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
@@ -102,31 +79,27 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     });
 
     try {
-      final uri = Uri.parse(
-        "https://api.frankfurter.app/latest?amount=$amount&from=$_fromCurrency&to=$_toCurrency",
-      );
-      final response = await http.get(uri);
+      final url = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${_fromCurrency!.toLowerCase()}.json";
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final rate = (data["rates"][_toCurrency] as num).toDouble();
-        final result = rate.toStringAsFixed(2);
+        final rate = (data[_fromCurrency!][_toCurrency!] as num).toDouble();
+        final result = (amount * rate).toStringAsFixed(2);
 
         final conversionData = {
           'amount': amount,
-          'from': _fromCurrency,
-          'to': _toCurrency,
+          'from': _fromCurrency!.toUpperCase(),
+          'to': _toCurrency!.toUpperCase(),
           'result': result,
           'timestamp': Timestamp.now(),
           'userId': user.uid,
         };
 
-        await FirebaseFirestore.instance
-            .collection('conversions_history')
-            .add(conversionData);
+        await FirebaseFirestore.instance.collection('conversions_history').add(conversionData);
 
         setState(() {
-          _convertedRate = rate / amount;
+          _convertedRate = rate;
           _conversionResult = result;
         });
 
@@ -147,13 +120,12 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
 
     setState(() => _isHistoryLoading = true);
     try {
-      final snapshot =
-          await FirebaseFirestore.instance
-              .collection('conversions_history')
-              .where('userId', isEqualTo: user.uid)
-              .orderBy('timestamp', descending: true)
-              .limit(20)
-              .get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('conversions_history')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('timestamp', descending: true)
+          .limit(20)
+          .get();
 
       setState(() {
         _conversionHistory = snapshot.docs.map((doc) => doc.data()).toList();
@@ -161,36 +133,27 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     } catch (e) {
       debugPrint("Error fetching history: $e");
     } finally {
-      setState(() => _isHistoryLoading = false); // stop loading
+      setState(() => _isHistoryLoading = false);
     }
   }
 
   void _showLoginRequiredDialog() {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Login Required"),
-            content: const Text(
-              "You must be logged in to convert and view history.",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pop();
-                  Navigator.of(
-                    context,
-                    rootNavigator: true,
-                  ).pushNamed('/settings');
-                },
-                child: const Text("Go to Log In"),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: const Text("Login Required"),
+        content: const Text("You must be logged in to convert and view history."),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).pop();
+              Navigator.of(context, rootNavigator: true).pushNamed('/settings');
+            },
+            child: const Text("Go to Log In"),
           ),
+        ],
+      ),
     );
   }
 
@@ -203,166 +166,26 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     _convertCurrency();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body:
-          _isLoading && _currencyMap.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildCard(
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _amountController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: "Enter Amount",
-                              prefixIcon: Icon(Icons.attach_money),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              bool isSmallScreen = constraints.maxWidth < 600;
-
-                              if (isSmallScreen) {
-                                return Column(
-                                  children: [
-                                    _buildCurrencyDropdown(
-                                      label: "From",
-                                      selected: _fromCurrency,
-                                      onChanged:
-                                          (val) => setState(
-                                            () => _fromCurrency = val,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    IconButton(
-                                      icon: const Icon(Icons.swap_vert),
-                                      onPressed: _swapCurrencies,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildCurrencyDropdown(
-                                      label: "To",
-                                      selected: _toCurrency,
-                                      onChanged:
-                                          (val) =>
-                                              setState(() => _toCurrency = val),
-                                    ),
-                                  ],
-                                );
-                              } else {
-                                return Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildCurrencyDropdown(
-                                        label: "From",
-                                        selected: _fromCurrency,
-                                        onChanged:
-                                            (val) => setState(
-                                              () => _fromCurrency = val,
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(Icons.swap_horiz),
-                                      onPressed: _swapCurrencies,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: _buildCurrencyDropdown(
-                                        label: "To",
-                                        selected: _toCurrency,
-                                        onChanged:
-                                            (val) => setState(
-                                              () => _toCurrency = val,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isLoading ? null : _convertCurrency,
-                              icon: Icon(
-                                Icons.currency_exchange,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                              label: Text(
-                                "Convert",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withAlpha(235),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 32,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 8,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_conversionResult != null ||
-                              (!_hasUserConverted &&
-                                  _defaultConversionResult != null))
-                            Text(
-                              (_hasUserConverted && _conversionResult != null)
-                                  ? "${_amountController.text} $_fromCurrency = $_conversionResult $_toCurrency"
-                                  : (_defaultConversionResult ?? ''),
-
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_fromCurrency != null && _toCurrency != null)
-                      _buildCard(
-                        child: CurrencyRateChart(
-                          from: _fromCurrency!,
-                          to: _toCurrency!,
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    _buildCard(
-                      child: ConversionHistoryWidget(
-                        history: _conversionHistory,
-                        isLoading: _isHistoryLoading,
-                        isConversionHistory: widget.isConversionHistory,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+  Widget _buildSearchableDropdown({
+    required String label,
+    required String? selected,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    return DropdownSearch<String>(
+      selectedItem: selected?.toUpperCase(),
+      items: _allCurrencies.map((c) => "${c.code.toUpperCase()} | ${c.name}").toList(),
+      dropdownDecoratorProps: DropDownDecoratorProps(
+        dropdownSearchDecoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          isDense: true,
+        ),
+      ),
+      popupProps: const PopupProps.menu(showSearchBox: true),
+      onChanged: (val) {
+        final code = val?.split(' | ').first.toLowerCase();
+        onChanged?.call(code);
+      },
     );
   }
 
@@ -374,28 +197,131 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     );
   }
 
-  Widget _buildCurrencyDropdown({
-    required String label,
-    required String? selected,
-    required ValueChanged<String?>? onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: selected,
-      items:
-          _currencyCodes
-              .map(
-                (code) => DropdownMenuItem(
-                  value: code,
-                  child: Text("$code | ${_currencyMap[code]}"),
-                ),
-              )
-              .toList(),
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        isDense: true,
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _allCurrencies.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildCard(
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _amountController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: "Enter Amount",
+                            prefixIcon: Icon(Icons.attach_money),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            bool isSmallScreen = constraints.maxWidth < 600;
+                            return isSmallScreen
+                                ? Column(
+                                    children: [
+                                      _buildSearchableDropdown(
+                                        label: "From",
+                                        selected: _fromCurrency,
+                                        onChanged: (val) => setState(() => _fromCurrency = val),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      IconButton(
+                                        icon: const Icon(Icons.swap_vert),
+                                        onPressed: _swapCurrencies,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _buildSearchableDropdown(
+                                        label: "To",
+                                        selected: _toCurrency,
+                                        onChanged: (val) => setState(() => _toCurrency = val),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildSearchableDropdown(
+                                          label: "From",
+                                          selected: _fromCurrency,
+                                          onChanged: (val) => setState(() => _fromCurrency = val),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.swap_horiz),
+                                        onPressed: _swapCurrencies,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: _buildSearchableDropdown(
+                                          label: "To",
+                                          selected: _toCurrency,
+                                          onChanged: (val) => setState(() => _toCurrency = val),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _isLoading ? null : _convertCurrency,
+                            icon: Icon(
+                              Icons.currency_exchange,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                            label: Text(
+                              "Convert",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(235),
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              elevation: 8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (_conversionResult != null || (!_hasUserConverted && _defaultConversionResult != null))
+                          Text(
+                            _hasUserConverted && _conversionResult != null
+                                ? "${_amountController.text} ${_fromCurrency!.toUpperCase()} = $_conversionResult ${_toCurrency!.toUpperCase()}"
+                                : _defaultConversionResult ?? '',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                            textAlign: TextAlign.center,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_fromCurrency != null && _toCurrency != null)
+                    _buildCard(
+                      child: CurrencyRateChart(from: _fromCurrency!, to: _toCurrency!),
+                    ),
+                  const SizedBox(height: 20),
+                  _buildCard(
+                    child: ConversionHistoryWidget(
+                      history: _conversionHistory,
+                      isLoading: _isHistoryLoading,
+                      isConversionHistory: widget.isConversionHistory,
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
