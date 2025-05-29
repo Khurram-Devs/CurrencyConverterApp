@@ -188,7 +188,7 @@ class _CurrencyRateChartState extends State<CurrencyRateChart> {
                     tooltipBgColor: isDark ? Colors.black87 : Colors.white,
                     tooltipRoundedRadius: 8,
                     tooltipPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                    horizontal: 12,
                       vertical: 8,
                     ),
                     fitInsideHorizontally: true,
