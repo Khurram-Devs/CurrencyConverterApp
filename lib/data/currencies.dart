@@ -34,15 +34,7 @@ List<Currency> fiatCurrencies = [
   Currency(code: "cdf", name: "Congolese Franc", category: "fiat"),
   Currency(code: "chf", name: "Swiss Franc", category: "fiat"),
   Currency(code: "clp", name: "Chilean Peso", category: "fiat"),
-<<<<<<< HEAD
   Currency(code: "cnh", name: "Chinese Yuan Renminbi Offshore", category: "fiat"),
-=======
-  Currency(
-    code: "cnh",
-    name: "Chinese Yuan Renminbi Offshore",
-    category: "fiat",
-  ),
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
   Currency(code: "cny", name: "Chinese Yuan Renminbi", category: "fiat"),
   Currency(code: "cop", name: "Colombian Peso", category: "fiat"),
   Currency(code: "crc", name: "Costa Rican Colon", category: "fiat"),
@@ -108,7 +100,6 @@ List<Currency> fiatCurrencies = [
   Currency(code: "lkr", name: "Sri Lankan Rupee", category: "fiat"),
   Currency(code: "lrd", name: "Liberian Dollar", category: "fiat"),
   Currency(code: "lsl", name: "Basotho Loti", category: "fiat"),
-<<<<<<< HEAD
   Currency(code: "ltl", name: "Lithuanian Litas", category: "fiat"),
   Currency(code: "luf", name: "Luxembourg Franc", category: "fiat"),
   Currency(code: "lvl", name: "Latvian Lat", category: "fiat"),
@@ -355,67 +346,3 @@ List<Currency> preciousMetals = [
   Currency(code: "xpd", name: "Palladium Ounce", category: "metal"),
   Currency(code: "xaut", name: "Tether Gold", category: "metal"),
 ];
-=======
-];
-
-List<Currency> cryptoCurrencies = [
-  Currency(code: "ada", name: "Cardano", category: "crypto"),
-  Currency(code: "algo", name: "Algorand", category: "crypto"),
-  Currency(code: "atom", name: "Cosmos", category: "crypto"),
-  Currency(code: "avax", name: "Avalanche", category: "crypto"),
-  Currency(code: "bch", name: "Bitcoin Cash", category: "crypto"),
-  Currency(code: "bnb", name: "Binance Coin", category: "crypto"),
-  Currency(code: "btc", name: "Bitcoin", category: "crypto"),
-  Currency(code: "cro", name: "Cronos", category: "crypto"),
-  Currency(code: "dai", name: "Dai", category: "crypto"),
-  Currency(code: "dash", name: "Dash", category: "crypto"),
-  Currency(code: "doge", name: "Dogecoin", category: "crypto"),
-  Currency(code: "dot", name: "Polkadot", category: "crypto"),
-  Currency(code: "egld", name: "MultiversX (Elrond)", category: "crypto"),
-  Currency(code: "enj", name: "Enjin Coin", category: "crypto"),
-  Currency(code: "etc", name: "Ethereum Classic", category: "crypto"),
-  Currency(code: "eth", name: "Ethereum", category: "crypto"),
-  Currency(code: "fil", name: "Filecoin", category: "crypto"),
-  Currency(code: "flow", name: "Flow", category: "crypto"),
-  Currency(code: "grt", name: "The Graph", category: "crypto"),
-  Currency(code: "hnt", name: "Helium", category: "crypto"),
-  Currency(code: "icp", name: "Internet Computer", category: "crypto"),
-  Currency(code: "kava", name: "Kava", category: "crypto"),
-  Currency(code: "klay", name: "Klaytn", category: "crypto"),
-  Currency(code: "leo", name: "UNUS SED LEO", category: "crypto"),
-  Currency(code: "link", name: "Chainlink", category: "crypto"),
-  Currency(code: "lrc", name: "Loopring", category: "crypto"),
-  Currency(code: "ltc", name: "Litecoin", category: "crypto"),
-  Currency(code: "mana", name: "Decentraland", category: "crypto"),
-  Currency(code: "matic", name: "Polygon", category: "crypto"),
-  Currency(code: "miota", name: "IOTA", category: "crypto"),
-  Currency(code: "neo", name: "Neo", category: "crypto"),
-  Currency(code: "okb", name: "OKB", category: "crypto"),
-  Currency(code: "qtum", name: "Qtum", category: "crypto"),
-  Currency(code: "sand", name: "The Sandbox", category: "crypto"),
-  Currency(code: "shib", name: "Shiba Inu", category: "crypto"),
-  Currency(code: "sol", name: "Solana", category: "crypto"),
-  Currency(code: "stellar", name: "Stellar", category: "crypto"),
-  Currency(code: "sushi", name: "SushiSwap", category: "crypto"),
-  Currency(code: "theta", name: "Theta", category: "crypto"),
-  Currency(code: "trx", name: "TRON", category: "crypto"),
-  Currency(code: "uni", name: "Uniswap", category: "crypto"),
-  Currency(code: "usdc", name: "USD Coin", category: "crypto"),
-  Currency(code: "usdt", name: "Tether", category: "crypto"),
-  Currency(code: "vet", name: "VeChain", category: "crypto"),
-  Currency(code: "waves", name: "Waves", category: "crypto"),
-  Currency(code: "xem", name: "NEM", category: "crypto"),
-  Currency(code: "xlm", name: "Stellar Lumens", category: "crypto"),
-  Currency(code: "xmr", name: "Monero", category: "crypto"),
-  Currency(code: "xrp", name: "Ripple", category: "crypto"),
-  Currency(code: "xtz", name: "Tezos", category: "crypto"),
-  Currency(code: "zec", name: "Zcash", category: "crypto"),
-];
-
-List<Currency> preciousMetals = [
-  Currency(code: "xau", name: "Gold", category: "metal"),
-  Currency(code: "xag", name: "Silver", category: "metal"),
-  Currency(code: "xpt", name: "Platinum", category: "metal"),
-  Currency(code: "xpd", name: "Palladium", category: "metal"),
-];
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e

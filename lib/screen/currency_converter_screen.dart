@@ -18,14 +18,7 @@ class CurrencyConverterScreen extends StatefulWidget {
 }
 
 class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
-<<<<<<< HEAD
   final TextEditingController _amountController = TextEditingController(text: "1");
-=======
-  final TextEditingController _amountController = TextEditingController(
-    text: "1",
-  );
-
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
   String? _defaultConversionResult;
   bool _hasUserConverted = false;
   late List<Currency> _allCurrencies;
@@ -41,17 +34,9 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
   void initState() {
     super.initState();
 
-<<<<<<< HEAD
     final all = [...fiatCurrencies, ...cryptoCurrencies, ...preciousMetals];
     final seen = <String>{};
     _allCurrencies = all.where((currency) => seen.add(currency.code.toLowerCase())).toList();
-=======
-    // Merge and ensure unique currency codes
-    final all = [...fiatCurrencies, ...cryptoCurrencies, ...preciousMetals];
-    final seen = <String>{};
-    _allCurrencies =
-        all.where((currency) => seen.add(currency.code.toLowerCase())).toList();
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
 
     _fromCurrency = 'usd';
     _toCurrency = 'eur';
@@ -61,17 +46,9 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
 
   Future<void> _fetchDefaultConversion() async {
     try {
-<<<<<<< HEAD
       final response = await http.get(Uri.parse(
         "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
       ));
-=======
-      final response = await http.get(
-        Uri.parse(
-          "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json",
-        ),
-      );
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final rate = (data["usd"]["eur"] as num).toDouble();
@@ -102,12 +79,7 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     });
 
     try {
-<<<<<<< HEAD
       final url = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${_fromCurrency!.toLowerCase()}.json";
-=======
-      final url =
-          "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${_fromCurrency!.toLowerCase()}.json";
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
@@ -194,16 +166,11 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
     _convertCurrency();
   }
 
-<<<<<<< HEAD
   Widget _buildSearchableDropdown({
-=======
-  Widget _buildCurrencyDropdown({
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
     required String label,
     required String? selected,
     required ValueChanged<String?>? onChanged,
   }) {
-<<<<<<< HEAD
     return DropdownSearch<String>(
       selectedItem: selected?.toUpperCase(),
       items: _allCurrencies.map((c) => "${c.code.toUpperCase()} | ${c.name}").toList(),
@@ -357,206 +324,4 @@ class _CurrencyConverterScreenState extends State<CurrencyConverterScreen> {
             ),
     );
   }
-=======
-    // Group by lowercase code and pick the first occurrence to prevent duplicates
-    final uniqueCurrencies =
-        {for (var c in _allCurrencies) c.code.toLowerCase(): c}.values.toList();
-
-    final dropdownItems =
-        uniqueCurrencies
-            .map(
-              (currency) => DropdownMenuItem<String>(
-                value: currency.code.toLowerCase(),
-                child: Text(
-                  "${currency.code.toUpperCase()} | ${currency.name}",
-                ),
-              ),
-            )
-            .toList();
-    print(
-      "All dropdown values: ${_allCurrencies.map((c) => c.code.toLowerCase())}",
-    );
-    return DropdownButtonFormField<String>(
-      value:
-          selected != null &&
-                  dropdownItems.any((item) => item.value == selected)
-              ? selected
-              : null, // avoid asserting on missing value
-      items: dropdownItems,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        isDense: true,
-      ),
-    );
-  }
-
-  Widget _buildCard({required Widget child}) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body:
-          _allCurrencies.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildCard(
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _amountController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: "Enter Amount",
-                              prefixIcon: Icon(Icons.attach_money),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              bool isSmallScreen = constraints.maxWidth < 600;
-                              return isSmallScreen
-                                  ? Column(
-                                    children: [
-                                      _buildCurrencyDropdown(
-                                        label: "From",
-                                        selected: _fromCurrency,
-                                        onChanged:
-                                            (val) => setState(
-                                              () => _fromCurrency = val,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      IconButton(
-                                        icon: const Icon(Icons.swap_vert),
-                                        onPressed: _swapCurrencies,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      _buildCurrencyDropdown(
-                                        label: "To",
-                                        selected: _toCurrency,
-                                        onChanged:
-                                            (val) => setState(
-                                              () => _toCurrency = val,
-                                            ),
-                                      ),
-                                    ],
-                                  )
-                                  : Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildCurrencyDropdown(
-                                          label: "From",
-                                          selected: _fromCurrency,
-                                          onChanged:
-                                              (val) => setState(
-                                                () => _fromCurrency = val,
-                                              ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.swap_horiz),
-                                        onPressed: _swapCurrencies,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: _buildCurrencyDropdown(
-                                          label: "To",
-                                          selected: _toCurrency,
-                                          onChanged:
-                                              (val) => setState(
-                                                () => _toCurrency = val,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isLoading ? null : _convertCurrency,
-                              icon: Icon(
-                                Icons.currency_exchange,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                              label: Text(
-                                "Convert",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withAlpha(235),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 32,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 8,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (_conversionResult != null ||
-                              (!_hasUserConverted &&
-                                  _defaultConversionResult != null))
-                            Text(
-                              _hasUserConverted && _conversionResult != null
-                                  ? "${_amountController.text} ${_fromCurrency!.toUpperCase()} = $_conversionResult ${_toCurrency!.toUpperCase()}"
-                                  : _defaultConversionResult ?? '',
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_fromCurrency != null && _toCurrency != null)
-                      _buildCard(
-                        child: CurrencyRateChart(
-                          from: _fromCurrency!,
-                          to: _toCurrency!,
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    _buildCard(
-                      child: ConversionHistoryWidget(
-                        history: _conversionHistory,
-                        isLoading: _isHistoryLoading,
-                        isConversionHistory: widget.isConversionHistory,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-    );
-  }
->>>>>>> 19c568b02b6a7567fdc2c11f96048e28ae8ef58e
 }
